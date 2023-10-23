@@ -10,6 +10,7 @@ templates_SCRIPTS = \
 	lxc-fedora \
 	lxc-fedora-legacy \
 	lxc-gentoo \
+	lxc-loongnixdebian \
 	lxc-openmandriva \
 	lxc-opensuse \
 	lxc-oracle \

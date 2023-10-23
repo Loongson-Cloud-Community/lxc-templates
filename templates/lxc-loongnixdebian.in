@@ -34,7 +34,11 @@ done
 export PATH=$PATH:/usr/sbin:/usr/bin:/sbin:/bin
 export GREP_OPTIONS=""
 
-MIRROR=${MIRROR:-http://deb.debian.org/debian}
+if [ `uname -p` = "loongarch64" ]; then
+   MIRROR=${MIRROR:-https://pkg.loongnix.cn/loongnix}
+else
+   MIRROR=${MIRROR:-http://deb.debian.org/debian}
+fi
 SECURITY_MIRROR=${SECURITY_MIRROR:-http://security.debian.org/}
 LOCALSTATEDIR="@LOCALSTATEDIR@"
 LXC_TEMPLATE_CONFIG="@LXCTEMPLATECONFIG@"
@@ -139,11 +143,14 @@ EOF
         chroot "$rootfs" update-locale LANG="$LANG"
     fi
 
-    # remove pointless services in a container
-    chroot "$rootfs" /usr/sbin/update-rc.d -f checkroot.sh disable
-    chroot "$rootfs" /usr/sbin/update-rc.d -f umountfs disable
-    chroot "$rootfs" /usr/sbin/update-rc.d -f hwclock.sh disable
-    chroot "$rootfs" /usr/sbin/update-rc.d -f hwclockfirst.sh disable
+    # Currently these services don't exist on loongnix debian systems.
+    if [ `uname -m` != "loongarch64" ]; then
+        # remove pointless services in a container
+        chroot "$rootfs" /usr/sbin/update-rc.d -f checkroot.sh disable
+        chroot "$rootfs" /usr/sbin/update-rc.d -f umountfs disable
+        chroot "$rootfs" /usr/sbin/update-rc.d -f hwclock.sh disable
+        chroot "$rootfs" /usr/sbin/update-rc.d -f hwclockfirst.sh disable
+    fi
 
     # generate new SSH keys
     if [ -x "$rootfs/var/lib/dpkg/info/openssh-server.postinst" ]; then
@@ -213,7 +220,7 @@ write_sourceslist()
 ${prefix} $MIRROR          ${release}         main${non_main}
 EOF
 
-    if [ "$release" != "unstable" -a "$release" != "sid" ]; then
+    if [ "$release" != "unstable" -a "$release" != "sid" -a `uname -m` != "loongarch64" ]; then
       cat >> "${rootfs}/etc/apt/sources.list" << EOF
 ${prefix} $SECURITY_MIRROR ${release}/updates main${non_main}
 EOF
@@ -323,11 +330,22 @@ download_debian()
         iproute=iproute2
         ;;
     esac
+
+    if [ `apt search dialog |grep ^dialog\/ |wc -l` != 0 ]; then
+        dialoglike="dialog"
+    elif [ `apt search whiptail |grep ^whiptail\/ |wc -l` != 0 ]; then
+        dialoglike="whiptail"
+    elif [ `apt search Xdialog |grep ^Xdialog\/ |wc -l` != 0 ]; then
+        dialoglike="Xdialog"
+    fi
     packages=\
 $init,\
 ifupdown,\
+iputils-ping,\
+bridge-utils,\
+vim,\
 locales,\
-dialog,\
+$dialoglike,\
 isc-dhcp-client,\
 netbase,\
 net-tools,\
@@ -770,7 +788,11 @@ if [ -n "$authkey" ]; then
     fi
 fi
 
-release=${release:-stable}
+if [ `uname -m` = "loongarch64" ]; then
+   release=${release:-DaoXiangHu-stable}
+else
+   release=${release:-stable}
+fi
 permanent_releases=('stable' 'testing' 'sid' 'unstable')
 if [[ ! "${permanent_releases[*]}" =~ (^|[^[:alpha:]])$release([^[:alpha:]]|$) ]]; then
     if ! wget "${MIRROR}/dists/${release}/Release" -O /dev/null 2> /dev/null; then
