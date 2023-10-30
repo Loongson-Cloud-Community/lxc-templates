@@ -426,39 +426,36 @@ download_centos()
     else
        YUM="$YUM0"
     fi
-    PKG_LIST="yum initscripts passwd rsyslog vim-minimal openssh-server openssh-clients dhclient chkconfig rootfiles policycoreutils cronie"
+    PKG_LIST="yum initscripts passwd rsyslog vim-minimal openssh-server openssh-clients dhclient chkconfig rootfiles policycoreutils cronie network-scripts coreutils net-tools iputils"
 
     # use temporary repository definition
     # always prefer the repo given by the user
-    # if no repo given, use mirrorlist.centos.org for i386 and x86_64
-    # and http://mirror.centos.org/altarch/ otherwise
-    REPO_FILE=$INSTALL_ROOT/etc/yum.repos.d/lxc-centos-temp.repo
+    REPO_FILE=$INSTALL_ROOT/etc/yum.repos.d/lxc-loongnixserver-temp.repo
     mkdir -p $(dirname $REPO_FILE)
     if [ -n "$repo" ]; then
-	cat <<EOF > $REPO_FILE
+        cat <<EOF > $REPO_FILE
 [base]
 name=local repository
 baseurl="$repo"
 EOF
-    elif [ ${basearch} = 'i386' ] || [ ${basearch} = 'x86_64' ]; then
-	cat <<EOF > $REPO_FILE
-[base]
-name=CentOS-$release - Base
-mirrorlist=http://mirrorlist.centos.org/?release=$release&arch=$basearch&repo=os
-
-[updates]
-name=CentOS-$release - Updates
-mirrorlist=http://mirrorlist.centos.org/?release=$release&arch=$basearch&repo=updates
-EOF
     else
-	cat <<EOF > $REPO_FILE
-[base]
-name=CentOS-$release - Base
-baseurl=http://mirror.centos.org/altarch/7/os/$basearch/
+        cat <<EOF > $REPO_FILE
+[baseos]
+name=Loongnix server $release - BaseOS
+baseurl=http://pkg.loongnix.cn/loongnix-server/$release/BaseOS/$basearch/release/
+gpgcheck=0
+enabled=1
+priority=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-LOONGNIX
 
-[updates]
-name=CentOS-$release - Updates
-baseurl=http://mirror.centos.org/altarch/7/updates/$basearch/
+[appstream]
+name=Loongnix server $release - AppStream
+baseurl=http://pkg.loongnix.cn/loongnix-server/$release/AppStream/$basearch/release/
+gpgcheck=0
+enabled=1
+priority=2
+module_hotfixes=false
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-LOONGNIX
 EOF
     fi
 
@@ -793,7 +790,7 @@ then
 fi
 
 # Allow the cache base to be set by environment variable
-cache_base=${LXC_CACHE_PATH:-"@LOCALSTATEDIR@/cache/lxc"}/centos/$basearch
+cache_base=${LXC_CACHE_PATH:-"@LOCALSTATEDIR@/cache/lxc"}/loongnixserver/$basearch
 
 # Let's do something better for the initial root password.
 # It's not perfect but it will defeat common scanning brute force
@@ -851,15 +848,7 @@ if [ -z "$path" ]; then
 fi
 
 if [ -z "$release" ]; then
-    if [ "$is_centos" -a "$centos_host_ver" ]; then
-        release=$centos_host_ver
-    elif [ "$is_redhat" -a "$redhat_host_ver" ]; then
-        # This is needed to clean out bullshit like 6workstation and 6server.
-        release=$(expr $redhat_host_ver : '\([0-9.]*\)')
-    else
-        echo "This is not a CentOS or Red Hat host and release is missing, defaulting to 7, use -R|--release to specify release"
-        release=7
-    fi
+    release=8.4
 fi
 
 if [ "$(id -u)" != "0" ]; then

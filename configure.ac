@@ -197,6 +197,7 @@ AC_CONFIG_FILES([
 	templates/lxc-fedora-legacy
 	templates/lxc-gentoo
 	templates/lxc-loongnixdebian
+	templates/lxc-loongnixserver
 	templates/lxc-openmandriva
 	templates/lxc-opensuse
 	templates/lxc-oracle
