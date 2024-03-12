@@ -48,8 +48,10 @@ ebf31683b56410ecc4c00acd9f6e2839e237a3b62b5ae7ef686705c7ba0396a9  alpine-devel@l
 9a4cd858d9710963848e6d5f555325dc199d1c952b01cf6e64da2c15deedbd97  alpine-devel@lists.alpinelinux.org-58cbb476.rsa.pub
 780b3ed41786772cbc7b68136546fa3f897f28a23b30c72dde6225319c44cfff  alpine-devel@lists.alpinelinux.org-58e4f17d.rsa.pub"
 
-readonly APK_KEYS_URI='http://alpinelinux.org/keys'
-readonly DEFAULT_MIRROR_URL='http://dl-cdn.alpinelinux.org/alpine'
+######## 替换alpine源
+#readonly APK_KEYS_URI='https://git.alpinelinux.org/aports/plain/main/alpine-keys/'
+readonly DEFAULT_MIRROR_URL='https://dev.alpinelinux.org/~loongarch/'
+MIRROR_VERSION=edge-9c13e7
 
 : ${APK_KEYS_DIR:=/etc/apk/keys}
 if ! ls "$APK_KEYS_DIR"/alpine* >/dev/null 2>&1; then
@@ -116,7 +118,7 @@ fetch() {
 
 latest_release_branch() {
 	local arch="$1"
-	local branch=$(fetch "$MIRROR_URL/latest-stable/releases/$arch/latest-releases.yaml" \
+	local branch=$(fetch "$MIRROR_URL/$MIRROR_VERSION/releases/$arch/latest-releases.yaml" \
 		| sed -En 's/^[ \t]*branch: (.*)$/\1/p' \
 		| head -n 1)
 	[ -n "$branch" ] && echo "$branch"
@@ -165,8 +167,9 @@ bootstrap() {
 		rm -Rf "$LXC_CACHE_DIR/bootstrap"
 	fi
 
-	einfo 'Fetching and/or verifying APK keys'
-	fetch_apk_keys "$APK_KEYS_DIR"
+	######### https://git.alpinelinux.org/aports/plain/main/alpine-keys/ 不存在loongarch pub文件，这个关闭keys 验证
+	#echo 'Fetching and/or verifying APK keys'
+	#fetch_apk_keys "$APK_KEYS_DIR"
 
 	if [ ! -x "$APK" ]; then
 		einfo 'Fetching apk-tools static binary'
@@ -201,13 +204,13 @@ fetch_apk_static() {
 
 	mkdir -p "$dest"
 
-	local pkg_ver=$(fetch "$MIRROR_URL/latest-stable/main/$arch/APKINDEX.tar.gz" \
+	local pkg_ver=$(fetch "$MIRROR_URL/$MIRROR_VERSION/main/$arch/APKINDEX.tar.gz" \
 		| tar -xzO APKINDEX \
 		| sed -n "/P:${pkg_name}/,/^$/ s/V:\(.*\)$/\1/p")
 
 	[ -n "$pkg_ver" ] || die 2 "Cannot find a version of $pkg_name in APKINDEX"
 
-	fetch "$MIRROR_URL/latest-stable/main/$arch/${pkg_name}-${pkg_ver}.apk" \
+	fetch "$MIRROR_URL/$MIRROR_VERSION/main/$arch/${pkg_name}-${pkg_ver}.apk" \
 		| tar -xz -C "$dest" sbin/  # --extract --gzip --directory
 
 	[ -s "$dest/sbin/apk.static" ] || die 2 'apk.static not found'
@@ -498,9 +501,11 @@ fi
 arch=$(parse_arch "$arch") \
 	|| die 1 "Unsupported architecture: $arch"
 
+############## 不存在https://dev.alpinelinux.org/~loongarch/edge-9c13e7/releases/loongarch64/xxxx-release.yaml
 if [ -z "$release" ]; then
-	release=$(latest_release_branch "$arch") \
-		|| die 2 'Failed to resolve Alpine last release branch'
+#	release=$(latest_release_branch "$arch") \
+#		|| die 2 'Failed to resolve Alpine last release branch'
+	release=edge-9c13e7
 fi
 
 # Here we go!
